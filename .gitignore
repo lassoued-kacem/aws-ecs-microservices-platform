@@ -1,0 +1,56 @@
+# ---- Python ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ---- Node / frontend ----
+node_modules/
+frontend/dist/
+*.local
+
+# ---- Terraform ----
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.infracost/
+# Lambda zips produced by archive_file
+terraform/**/build/
+
+# ---- Secrets / env (NEVER commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+!services/**/certs/README.md
+*.key
+credentials
+.aws/
+
+# ---- Editors / OS ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# ---- Claude Code local state ----
+.claude/settings.local.json
