@@ -1,0 +1,44 @@
+name: Destroy environment
+
+# Manual only. Destroys envs/prod (never bootstrap/foundation, so state, ECR
+# images and image-tag pointers survive and the env can be rebuilt later).
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy-prod" to confirm'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-prod
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_VAR_region: ${{ vars.AWS_REGION }}
+  TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+  TF_IN_AUTOMATION: "true"
+  WORKDIR: terraform/envs/prod
+
+jobs:
+  destroy:
+    if: inputs.confirm == 'destroy-prod' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: 1.16.5
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APPLY_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 3600
+      - run: terraform -chdir=$WORKDIR init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${AWS_REGION}"
+      - run: terraform -chdir=$WORKDIR destroy -auto-approve
+      - name: Reminder
+        run: echo "::notice::Environment destroyed. Set the ENV_ACTIVE repo variable to false so merges don't rebuild it."
