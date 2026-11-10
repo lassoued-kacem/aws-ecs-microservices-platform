@@ -1,0 +1,3 @@
+# cp terraform.tfvars.example terraform.tfvars   (terraform.tfvars is gitignored)
+github_repository = "YOUR_GITHUB_USER/ticketrush"
+state_bucket      = "ticketrush-tfstate-<account-id>-eu-west-3" # bootstrap output
