@@ -32,10 +32,6 @@ resource "aws_db_parameter_group" "this" {
     name  = "log_min_duration_statement"
     value = "500" # log queries slower than 500 ms (shipped to CloudWatch)
   }
-  parameter {
-    name  = "log_connections"
-    value = "1"
-  }
 }
 
 resource "aws_db_instance" "this" {

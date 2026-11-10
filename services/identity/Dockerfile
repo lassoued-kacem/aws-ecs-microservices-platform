@@ -2,6 +2,10 @@
 # ---------- build stage: compile/download wheels, never shipped ----------
 FROM python:3.14-slim-bookworm AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+# Compiler only in the build stage: used solely if a dependency has no prebuilt
+# wheel for this CPU/Python. The runtime image never contains it.
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY requirements.txt .
 RUN python -m venv /opt/venv \
