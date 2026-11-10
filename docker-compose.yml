@@ -1,0 +1,40 @@
+# Local full stack: `docker compose up --build`, then `cd frontend && npm run dev`
+# and open http://localhost:5173 (Vite proxies /api to the containers).
+# Credentials below are LOCAL-ONLY throwaways; AWS values come from SSM.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ticketrush
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: ticketrush
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketrush"]
+      interval: 3s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports: ["6379:6379"]
+
+  identity:
+    build: ./services/identity
+    environment: &common
+      ENVIRONMENT: local
+      DB_HOST: postgres
+      REDIS_URL: redis://valkey:6379/0
+      COOKIE_SECURE: "false"
+    ports: ["8001:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_started }
+
+  ticketing:
+    build: ./services/ticketing
+    environment:
+      <<: *common
+    ports: ["8002:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_started }
