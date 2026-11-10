@@ -54,3 +54,6 @@ credentials
 
 # ---- Claude Code local state ----
 .claude/settings.local.json
+
+# Private planning notes (personal info, never public)
+docs/PROJECT-CONTEXT.md
