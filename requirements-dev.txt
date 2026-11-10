@@ -1,0 +1,7 @@
+# Local developer tooling for the .venv. Service runtime deps live in services/*/requirements.txt.
+-r services/ticketing/requirements.txt
+pytest==9.2.0
+httpx==0.28.1
+ruff==0.17.4
+pre-commit==4.6.0
+moto[dynamodb,sqs]==5.2.5
