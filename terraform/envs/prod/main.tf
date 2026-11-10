@@ -1,6 +1,5 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
-data "aws_partition" "current" {}
 
 # Created by the foundation layer (permanent).
 data "aws_iam_policy" "boundary" {
@@ -22,7 +21,6 @@ locals {
   name       = "${var.project}-${var.environment}"
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
-  partition  = data.aws_partition.current.partition
   services   = ["identity", "ticketing"]
   boundary   = data.aws_iam_policy.boundary.arn
 }

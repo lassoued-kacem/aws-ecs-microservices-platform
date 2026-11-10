@@ -126,6 +126,7 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 }
 
 resource "aws_lb_target_group" "this" {
+  #checkov:skip=CKV_AWS_378:ALB->task traffic stays inside the VPC on private subnets; TLS terminates at CloudFront.
   name                 = substr(local.full_name, 0, 32)
   port                 = var.container_port
   protocol             = "HTTP"

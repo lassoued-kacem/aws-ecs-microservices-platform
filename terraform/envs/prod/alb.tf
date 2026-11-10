@@ -14,6 +14,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_from_cloudfront" {
+  #checkov:skip=CKV_AWS_260:Source is the CloudFront origin-facing prefix list, not 0.0.0.0/0 (false positive).
   security_group_id = aws_security_group.alb.id
   prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
   from_port         = 80
@@ -33,6 +34,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_services" {
 }
 
 resource "aws_lb" "this" {
+  #checkov:skip=CKV2_AWS_76:AWSManagedRulesKnownBadInputsRuleSet (attached) contains the Log4j rules.
   #checkov:skip=CKV_AWS_150:Deletion protection off: environment is destroyed after each session.
   #checkov:skip=CKV_AWS_91:Access logs skipped for cost/simplicity; CloudFront + WAF logs + app logs cover requests.
   #checkov:skip=CKV2_AWS_20:No certificate without a domain; HTTPS terminates at CloudFront (documented trade-off).

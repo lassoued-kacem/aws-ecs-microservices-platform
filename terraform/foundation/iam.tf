@@ -12,6 +12,14 @@ locals {
 # the apply role is abused to create a role with AdministratorAccess, the
 # boundary caps it: no IAM, no Organizations, no billing.
 data "aws_iam_policy_document" "boundary" {
+  #checkov:skip=CKV_AWS_1:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_107:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_108:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_109:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_110:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_111:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_356:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
+  #checkov:skip=CKV_AWS_49:This is a permissions BOUNDARY (a ceiling intersected with each role's own policy), not a grant; it denies IAM/Organizations.
   statement {
     sid       = "AllowWorkloadServices"
     actions   = ["*"]
@@ -78,6 +86,7 @@ resource "aws_iam_role_policy_attachment" "apply_poweruser" {
 }
 
 data "aws_iam_policy_document" "apply_iam" {
+  #checkov:skip=CKV_AWS_356:Only read-only IAM Get/List actions use "*"; all writes are scoped to ticketrush-* roles with a boundary condition.
   statement {
     sid = "CreateWorkloadRolesOnlyWithBoundary"
     actions = [
@@ -150,6 +159,7 @@ resource "aws_iam_role" "deploy" {
 }
 
 data "aws_iam_policy_document" "deploy" {
+  #checkov:skip=CKV_AWS_356:ecr:GetAuthorizationToken and ecs Describe/RegisterTaskDefinition do not support resource-level permissions.
   statement {
     sid       = "EcrAuth"
     actions   = ["ecr:GetAuthorizationToken"]
