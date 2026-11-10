@@ -1,0 +1,181 @@
+name: App CD
+
+# Builds ARM64 images for changed services, pushes them to ECR with the commit
+# SHA as an immutable tag, records the tag in SSM, and, if the environment is
+# up, rolls the ECS services and syncs the SPA to S3/CloudFront.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "frontend/**"
+      - "scripts/deploy-service.sh"
+      - ".github/workflows/app-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: "Rebuild and deploy every service + the frontend"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write # OIDC -> AWS, no stored keys
+
+concurrency:
+  group: app-deploy
+  cancel-in-progress: false # never cancel a deploy halfway
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  PROJECT: ticketrush
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.pick.outputs.services }}
+      frontend: ${{ steps.pick.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: dorny/paths-filter@v4.0.3
+        id: filter
+        with:
+          filters: |
+            identity:
+              - 'services/identity/**'
+            ticketing:
+              - 'services/ticketing/**'
+            frontend:
+              - 'frontend/**'
+            shared:
+              - 'scripts/deploy-service.sh'
+              - '.github/workflows/app-deploy.yml'
+      - id: pick
+        env:
+          FORCE: ${{ inputs.force_all == true || steps.filter.outputs.shared == 'true' }}
+          ID: ${{ steps.filter.outputs.identity }}
+          TK: ${{ steps.filter.outputs.ticketing }}
+          FE: ${{ steps.filter.outputs.frontend }}
+        run: |
+          svcs=()
+          if [[ "$FORCE" == "true" || "$ID" == "true" ]]; then svcs+=("identity"); fi
+          if [[ "$FORCE" == "true" || "$TK" == "true" ]]; then svcs+=("ticketing"); fi
+          echo "services=$(printf '%s\n' "${svcs[@]}" | jq -R . | jq -sc 'map(select(length>0))')" >> "$GITHUB_OUTPUT"
+          if [[ "$FORCE" == "true" || "$FE" == "true" ]]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; else echo "frontend=false" >> "$GITHUB_OUTPUT"; fi
+
+  build-deploy:
+    needs: changes
+    if: needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-24.04-arm # native ARM64 build: no QEMU emulation, free for public repos
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.changes.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APP_DEPLOY_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        run: |
+          REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+          echo "image=${REGISTRY}/${PROJECT}/${{ matrix.service }}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip push if this SHA already exists (immutable tags)
+        id: exists
+        run: |
+          if aws ecr describe-images --repository-name "${PROJECT}/${{ matrix.service }}" --image-ids imageTag="${GITHUB_SHA}" >/dev/null 2>&1; then
+            echo "Image for ${GITHUB_SHA} already in ECR, re-using it."; echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v4.4.1
+        if: steps.exists.outputs.skip == 'false'
+
+      - uses: docker/build-push-action@v7.4.0
+        if: steps.exists.outputs.skip == 'false'
+        with:
+          context: services/${{ matrix.service }}
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.image }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Record image tag (lets a rebuilt env start on this image)
+        run: aws ssm put-parameter --name "/${PROJECT}/deploy/${{ matrix.service }}/image_tag" --value "${GITHUB_SHA}" --type String --overwrite >/dev/null
+
+      - name: Is the environment up?
+        id: env
+        run: |
+          if CLUSTER=$(aws ssm get-parameter --name "/${PROJECT}/env/cluster" --query Parameter.Value --output text 2>/dev/null) \
+             && [[ "$(aws ecs describe-clusters --clusters "$CLUSTER" --query 'clusters[0].status' --output text)" == "ACTIVE" ]]; then
+            echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"; echo "up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Environment is down: image pushed, deploy skipped."; echo "up=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to ECS
+        if: steps.env.outputs.up == 'true'
+        run: ./scripts/deploy-service.sh "${{ steps.env.outputs.cluster }}" "${{ matrix.service }}" "${{ steps.env.outputs.cluster }}-${{ matrix.service }}" "${{ steps.ecr.outputs.image }}"
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: npm ci && npm run build
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APP_DEPLOY_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Upload to S3 and invalidate CloudFront
+        run: |
+          if ! BUCKET=$(aws ssm get-parameter --name "/${PROJECT}/env/frontend_bucket" --query Parameter.Value --output text 2>/dev/null); then
+            echo "::notice::Environment is down: frontend deploy skipped."; exit 0
+          fi
+          DIST=$(aws ssm get-parameter --name "/${PROJECT}/env/cloudfront_id" --query Parameter.Value --output text)
+          # Hashed assets: cache 1 year (immutable). index.html: always revalidate.
+          aws s3 sync frontend/dist/assets "s3://${BUCKET}/assets" --delete --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync frontend/dist "s3://${BUCKET}" --delete --exclude "assets/*" --cache-control "no-cache"
+          aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/index.html" "/" >/dev/null
+          echo "Frontend deployed."
+
+  smoke-test:
+    needs: [build-deploy, frontend]
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APP_DEPLOY_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Smoke test through CloudFront
+        run: |
+          if ! URL=$(aws ssm get-parameter --name "/${PROJECT}/env/base_url" --query Parameter.Value --output text 2>/dev/null); then
+            echo "Environment down, nothing to test."; exit 0
+          fi
+          for path in / /api/events /api/health /api/auth/health; do
+            for i in 1 2 3 4 5; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "${URL}${path}") && [[ "$code" == "200" ]] && break
+              echo "  ${path} -> ${code}, retry ${i}"; sleep 6
+            done
+            [[ "$code" == "200" ]] || { echo "::error::${path} returned ${code}"; exit 1; }
+            echo "OK ${path}"
+          done
+          curl -sI "${URL}/" | grep -i strict-transport-security
