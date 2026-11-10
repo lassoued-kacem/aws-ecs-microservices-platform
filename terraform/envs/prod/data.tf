@@ -39,6 +39,7 @@ resource "aws_db_parameter_group" "this" {
 }
 
 resource "aws_db_instance" "this" {
+  #checkov:skip=CKV_AWS_118:Enhanced monitoring adds cost; Performance Insights + CloudWatch metrics are enough here.
   #checkov:skip=CKV_AWS_293:Deletion protection is off on purpose: the env is destroyed after each session.
   #checkov:skip=CKV_AWS_161:IAM DB auth not used; password from SSM keeps the app driver simple.
   #checkov:skip=CKV2_AWS_30:Query logging is enabled via log_min_duration_statement.
@@ -98,6 +99,7 @@ resource "aws_vpc_security_group_ingress_rule" "cache_from_services" {
 }
 
 resource "aws_elasticache_replication_group" "this" {
+  #checkov:skip=CKV2_AWS_50:Failover is enabled when cache_replicas > 0 (variable, cost trade-off).
   #checkov:skip=CKV_AWS_191:AWS-managed encryption at rest (no CMK by project decision).
   replication_group_id       = local.name
   description                = "TicketRush cache, rate limits"

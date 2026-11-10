@@ -42,6 +42,7 @@ resource "aws_ecr_lifecycle_policy" "svc" {
 # Pointer written by the app pipeline after each push. envs/prod reads it so a
 # rebuilt environment starts on the last good image (no `latest` tag exists).
 resource "aws_ssm_parameter" "image_tag" {
+  #checkov:skip=CKV2_AWS_34:Image tags are not secret.
   for_each    = var.services
   name        = "/${var.project}/deploy/${each.key}/image_tag"
   description = "Last image tag pushed by CI for ${each.key}"

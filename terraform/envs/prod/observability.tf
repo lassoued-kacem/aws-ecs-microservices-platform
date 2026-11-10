@@ -193,32 +193,32 @@ resource "aws_cloudwatch_composite_alarm" "user_impact" {
 resource "aws_cloudwatch_query_definition" "errors" {
   name            = "${local.name}/top-errors"
   log_group_names = [for s in module.svc : s.log_group_name]
-  query_string    = <<-Q
-    fields @timestamp, logger, msg, exc
-    | filter level = "ERROR"
-    | stats count() as errors by logger, msg
-    | sort errors desc
-    | limit 20
-  Q
+  query_string = join("\n", [
+    "fields @timestamp, logger, msg, exc",
+    "| filter level = \"ERROR\"",
+    "| stats count() as errors by logger, msg",
+    "| sort errors desc",
+    "| limit 20",
+  ])
 }
 
 resource "aws_cloudwatch_query_definition" "slow" {
   name            = "${local.name}/slowest-requests"
   log_group_names = [for s in module.svc : s.log_group_name]
-  query_string    = <<-Q
-    fields @timestamp, method, path, status, duration_ms
-    | filter msg = "request"
-    | sort duration_ms desc
-    | limit 50
-  Q
+  query_string = join("\n", [
+    "fields @timestamp, method, path, status, duration_ms",
+    "| filter msg = \"request\"",
+    "| sort duration_ms desc",
+    "| limit 50",
+  ])
 }
 
 resource "aws_cloudwatch_query_definition" "latency_by_route" {
   name            = "${local.name}/latency-by-route"
   log_group_names = [for s in module.svc : s.log_group_name]
-  query_string    = <<-Q
-    filter msg = "request"
-    | stats count() as requests, pct(duration_ms, 50) as p50, pct(duration_ms, 95) as p95, pct(duration_ms, 99) as p99 by method, path
-    | sort requests desc
-  Q
+  query_string = join("\n", [
+    "filter msg = \"request\"",
+    "| stats count() as requests, pct(duration_ms, 50) as p50, pct(duration_ms, 95) as p95, pct(duration_ms, 99) as p99 by method, path",
+    "| sort requests desc",
+  ])
 }

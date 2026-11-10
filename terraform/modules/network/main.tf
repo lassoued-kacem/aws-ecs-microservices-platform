@@ -1,4 +1,5 @@
 data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394:We slice the first N AZs; a new AZ appearing later does not change the selection in practice for eu-west-3.
   state = "available"
 }
 

@@ -43,6 +43,7 @@ resource "aws_ssm_parameter" "secret" {
 
 # Non-secret pointers the app pipeline reads to know where to deploy.
 resource "aws_ssm_parameter" "env" {
+  #checkov:skip=CKV2_AWS_34:Non-secret pointers (names/ids). Secrets use SecureString above.
   for_each = {
     cluster         = aws_ecs_cluster.this.name
     frontend_bucket = aws_s3_bucket.frontend.bucket

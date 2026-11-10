@@ -112,6 +112,7 @@ resource "aws_cloudfront_function" "spa_rewrite" {
 }
 
 resource "aws_cloudfront_response_headers_policy" "security" {
+  #checkov:skip=CKV_AWS_259:HSTS is enforced (1 year, includeSubDomains); preload is impossible on *.cloudfront.net.
   name = "${local.name}-security-headers"
   security_headers_config {
     strict_transport_security {
@@ -139,6 +140,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
 }
 
 resource "aws_cloudfront_distribution" "this" {
+  #checkov:skip=CKV_AWS_374:Public ticketing site: no geo restriction wanted.
   #checkov:skip=CKV_AWS_68:WAF is attached at the ALB (regional) to avoid a us-east-1 provider; documented.
   #checkov:skip=CKV2_AWS_47:See CKV_AWS_68.
   #checkov:skip=CKV_AWS_86:CloudFront access logs skipped for cost; metrics + WAF logs cover it.
