@@ -96,7 +96,7 @@ flowchart LR
 ## Run it
 
 - **Locally:** `docker compose up --build` and `cd frontend && npm run dev` → http://localhost:5173
-- **On AWS:** follow [WHAT-TO-DO-MANUALLY.md](WHAT-TO-DO-MANUALLY.md). After the one-time setup, it comes down to `make apply` and one pipeline run, then `make destroy`.
+- **On AWS:** after a one-time setup (state bucket, OIDC roles, GitHub variables), it comes down to `make apply` and one pipeline run, then `make destroy`.
 
 ## Cost (eu-west-3, estimates; Infracost on each PR gives exact numbers)
 
