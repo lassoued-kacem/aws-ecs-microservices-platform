@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ---------- build stage: compile/download wheels, never shipped ----------
-FROM python:3.14-slim-bookworm AS build
+FROM python:3.15-slim-bookworm AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 # Compiler only in the build stage: used solely if a dependency has no prebuilt
 # wheel for this CPU/Python. The runtime image never contains it.
@@ -15,7 +15,7 @@ RUN python -m venv /opt/venv \
 ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /build/certs/rds-global-bundle.pem
 
 # ---------- runtime stage: small, non-root, read-only friendly ----------
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
