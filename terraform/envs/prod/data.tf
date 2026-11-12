@@ -57,7 +57,7 @@ resource "aws_db_instance" "this" {
   parameter_group_name            = aws_db_parameter_group.this.name
   multi_az                        = var.db_multi_az
   publicly_accessible             = false
-  backup_retention_period         = 7 # point-in-time recovery to any second in 7 days
+  backup_retention_period         = var.db_backup_retention_days # PITR window
   backup_window                   = "02:00-03:00"
   maintenance_window              = "sun:03:30-sun:04:30"
   copy_tags_to_snapshot           = true
