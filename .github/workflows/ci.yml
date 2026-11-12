@@ -88,5 +88,14 @@ jobs:
           context: services/${{ matrix.service }}
           platforms: linux/arm64
           push: false
+          load: true
+          tags: ci-${{ matrix.service }}:test
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Image smoke test (as the runtime user, read-only FS, like Fargate)
+        run: |
+          docker run --rm --read-only -u 10001 ci-${{ matrix.service }}:test python -c "
+          import ssl, app.main
+          n = len(ssl.create_default_context(cafile='/srv/certs/rds-global-bundle.pem').get_ca_certs())
+          assert n > 0, 'RDS CA bundle unreadable'
+          print('ok: app imports, RDS CA certs:', n)"

@@ -12,7 +12,7 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && /opt/venv/bin/pip install -r requirements.txt
 # RDS CA bundle so Postgres connections use sslmode=verify-full (no MITM).
-ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /build/certs/rds-global-bundle.pem
+ADD --chmod=0444 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /build/certs/rds-global-bundle.pem
 
 # ---------- runtime stage: small, non-root, read-only friendly ----------
 FROM python:3.14-slim-bookworm AS runtime
@@ -24,7 +24,7 @@ RUN groupadd --system --gid 10001 app \
  && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /srv
 COPY --from=build /opt/venv /opt/venv
-COPY --from=build --chmod=0444 /build/certs /srv/certs
+COPY --from=build /build/certs /srv/certs
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app

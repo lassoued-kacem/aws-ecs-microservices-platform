@@ -15,7 +15,7 @@ locals {
     { type = "metric", x = 0, y = 2, width = 6, height = 4, properties = {
       title = "Availability (non-5xx %)", view = "singleValue", region = local.r, period = 300, stat = "Sum",
       metrics = [
-        [{ expression = "100 - 100 * (FILL(m2,0) + FILL(m3,0)) / MAX([m1,1])", label = "Availability %", id = "e1" }],
+        [{ expression = "100 - 100 * (FILL(m2,0) + FILL(m3,0)) / IF(FILL(m1,0) > 0, FILL(m1,0), 1)", label = "Availability %", id = "e1" }],
         ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb, { id = "m1", visible = false }],
         ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", local.alb, { id = "m2", visible = false }],
         ["AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "LoadBalancer", local.alb, { id = "m3", visible = false }],
@@ -90,7 +90,7 @@ locals {
     { type = "metric", x = 16, y = 18, width = 8, height = 6, properties = {
       title = "Valkey: cache hit ratio (app-side) & memory", view = "timeSeries", region = local.r, period = 60, stat = "Sum",
       metrics = [
-        [{ expression = "100 * h / MAX([h + m, 1])", label = "events cache hit %", id = "hr" }],
+        [{ expression = "100 * FILL(h,0) / IF(FILL(h,0) + FILL(m,0) > 0, FILL(h,0) + FILL(m,0), 1)", label = "events cache hit %", id = "hr" }],
         ["TicketRush/Business", "CacheHit", "Service", "ticketing", "Resource", "events", { id = "h", visible = false }],
         ["TicketRush/Business", "CacheMiss", "Service", "ticketing", "Resource", "events", { id = "m", visible = false }],
         ["AWS/ElastiCache", "DatabaseMemoryUsagePercentage", "CacheClusterId", local.cache_node, { label = "memory %", stat = "Maximum", yAxis = "right" }],

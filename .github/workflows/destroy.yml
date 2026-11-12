@@ -21,6 +21,7 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TF_VAR_region: ${{ vars.AWS_REGION }}
   TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+  TF_VAR_db_backup_retention_days: ${{ vars.DB_BACKUP_RETENTION_DAYS || '7' }} # 1 on AWS Free-plan accounts
   TF_IN_AUTOMATION: "true"
   WORKDIR: terraform/envs/prod
 
