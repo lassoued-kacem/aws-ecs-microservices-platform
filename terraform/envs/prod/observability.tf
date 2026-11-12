@@ -103,7 +103,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx_rate" {
 
   metric_query {
     id          = "rate"
-    expression  = "100 * (FILL(e5xx,0) + FILL(t5xx,0)) / MAX([req, 1])"
+    expression  = "100 * (FILL(e5xx,0) + FILL(t5xx,0)) / IF(FILL(req,0) > 0, FILL(req,0), 1)"
     label       = "5xx %"
     return_data = true
   }

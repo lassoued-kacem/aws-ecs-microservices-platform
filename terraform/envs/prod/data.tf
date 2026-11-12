@@ -27,6 +27,8 @@ resource "aws_db_parameter_group" "this" {
   parameter {
     name  = "rds.force_ssl"
     value = "1" # reject any unencrypted client connection
+    # AWS reports this static param as pending-reboot; matching it avoids a perpetual diff.
+    apply_method = "pending-reboot"
   }
   parameter {
     name  = "log_min_duration_statement"
