@@ -108,11 +108,10 @@ locals {
     } },
     { type = "metric", x = 8, y = 24, width = 8, height = 6, properties = {
       title = "Lambdas: invocations / errors / throttles", view = "timeSeries", region = local.r, period = 60, stat = "Sum",
-      metrics = flatten([for f in [module.ticket_issuer.function_name, module.canary.function_name] : [
-        ["AWS/Lambda", "Invocations", "FunctionName", f, { label = "${f} inv" }],
-        ["AWS/Lambda", "Errors", "FunctionName", f, { label = "${f} err" }],
-        ["AWS/Lambda", "Throttles", "FunctionName", f, { label = "${f} thr" }],
-      ]])
+      # setproduct, not flatten(): flatten would also flatten each metric row into strings.
+      metrics = [for p in setproduct([module.ticket_issuer.function_name, module.canary.function_name], ["Invocations", "Errors", "Throttles"]) :
+        ["AWS/Lambda", p[1], "FunctionName", p[0], { label = "${trimprefix(p[0], "${local.name}-")} ${lower(p[1])}" }]
+      ]
     } },
     { type = "metric", x = 16, y = 24, width = 8, height = 6, properties = {
       title   = "Canary latency from outside (ms)", view = "timeSeries", region = local.r, period = 60, stat = "Average",
