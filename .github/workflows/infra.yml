@@ -118,6 +118,7 @@ jobs:
             await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
       - name: Infracost
         if: env.INFRACOST_API_KEY != ''
+        continue-on-error: true # informational: cost comments/policies must never block a deploy
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
