@@ -46,7 +46,7 @@ resource "aws_iam_role_policy" "logs" {
 }
 
 resource "aws_iam_role_policy" "extra" {
-  count  = var.policy_json == null ? 0 : 1
+  count  = var.attach_policy ? 1 : 0
   name   = "function-permissions"
   role   = aws_iam_role.this.id
   policy = var.policy_json

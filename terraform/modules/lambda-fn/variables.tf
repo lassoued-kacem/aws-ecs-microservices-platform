@@ -28,6 +28,12 @@ variable "environment" {
   default = {}
 }
 
+variable "attach_policy" {
+  description = "Attach policy_json. A separate static flag because count cannot depend on a policy that is only known after apply."
+  type        = bool
+  default     = false
+}
+
 variable "policy_json" {
   description = "Least-privilege permissions for this function. null = logs only."
   type        = string

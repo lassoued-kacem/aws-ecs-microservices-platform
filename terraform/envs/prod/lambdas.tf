@@ -16,6 +16,7 @@ module "ticket_issuer" {
   source_dir               = "${path.root}/../../../lambdas/ticket_issuer"
   timeout                  = 10
   environment              = { TICKETS_TABLE = aws_dynamodb_table.tickets.name }
+  attach_policy            = true
   policy_json              = data.aws_iam_policy_document.issuer.json
   permissions_boundary_arn = local.boundary
   log_retention_days       = var.log_retention_days
