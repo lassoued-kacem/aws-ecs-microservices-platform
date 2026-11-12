@@ -106,6 +106,12 @@ variable "log_retention_days" {
   default = 14
 }
 
+variable "attach_task_role_policy" {
+  description = "Attach task_role_policy_json. A separate static flag because count cannot depend on a policy that is only known after apply."
+  type        = bool
+  default     = false
+}
+
 variable "task_role_policy_json" {
   description = "Extra least-privilege permissions for the app (e.g. SQS send). null = none."
   type        = string

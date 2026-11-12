@@ -40,6 +40,7 @@ locals {
       priority = 10 # more specific than /api/* so it must win
       env      = {}
       policy   = null
+      attach   = false
     }
     ticketing = {
       paths    = ["/api/*"]
@@ -49,6 +50,7 @@ locals {
         TICKETS_TABLE    = aws_dynamodb_table.tickets.name
       }
       policy = data.aws_iam_policy_document.ticketing.json
+      attach = true
     }
   }
 }
@@ -88,6 +90,7 @@ module "svc" {
   min_count                  = var.service_desired_count
   max_count                  = var.service_max_count
   log_retention_days         = var.log_retention_days
+  attach_task_role_policy    = each.value.attach
   task_role_policy_json      = each.value.policy
   permissions_boundary_arn   = local.boundary
 }
