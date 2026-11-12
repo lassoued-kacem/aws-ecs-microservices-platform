@@ -35,3 +35,13 @@ variable "create_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "github_oidc_sub_prefix" {
+  description = "Immutable OIDC subject prefix, if the repo uses it (gh api repos/OWNER/REPO/actions/oidc/customization/sub -> sub_claim_prefix), e.g. repo:owner@123/repo@456. Empty = classic subjects only."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.github_oidc_sub_prefix == "" || can(regex("^repo:[A-Za-z0-9_.-]+@[0-9]+/[A-Za-z0-9_.-]+@[0-9]+$", var.github_oidc_sub_prefix))
+    error_message = "Must look like repo:owner@<id>/repo@<id>, or be empty."
+  }
+}

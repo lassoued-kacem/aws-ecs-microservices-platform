@@ -1,3 +1,5 @@
 # cp terraform.tfvars.example terraform.tfvars   (terraform.tfvars is gitignored)
 github_repository = "YOUR_GITHUB_USER/ticketrush"
 state_bucket      = "ticketrush-tfstate-<account-id>-eu-west-3" # bootstrap output
+# Only if `gh api repos/OWNER/REPO/actions/oidc/customization/sub` shows use_immutable_subject=true:
+# github_oidc_sub_prefix = "repo:OWNER@<owner-id>/REPO@<repo-id>"
