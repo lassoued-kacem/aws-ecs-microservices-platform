@@ -7,7 +7,11 @@ locals {
   partition  = data.aws_partition.current.partition
   region     = data.aws_region.current.region
   oidc_host  = "token.actions.githubusercontent.com"
-  oidc_arn   = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : "arn:${local.partition}:iam::${local.account_id}:oidc-provider/${local.oidc_host}"
+  oidc_sub_prefixes = compact([
+    "repo:${var.github_repository}",
+    var.github_oidc_sub_prefix,
+  ])
+  oidc_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : "arn:${local.partition}:iam::${local.account_id}:oidc-provider/${local.oidc_host}"
 }
 
 # ---------------------------------------------------------------- ECR
@@ -64,10 +68,12 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 data "aws_iam_policy_document" "trust" {
+  # Accept the classic subject and, when set, GitHub's immutable subject
+  # (owner@id/repo@id), which survives repo renames and owner reuse.
   for_each = {
-    plan   = ["repo:${var.github_repository}:pull_request"]
-    apply  = ["repo:${var.github_repository}:ref:refs/heads/main"]
-    deploy = ["repo:${var.github_repository}:ref:refs/heads/main"]
+    plan   = [for p in local.oidc_sub_prefixes : "${p}:pull_request"]
+    apply  = [for p in local.oidc_sub_prefixes : "${p}:ref:refs/heads/main"]
+    deploy = [for p in local.oidc_sub_prefixes : "${p}:ref:refs/heads/main"]
   }
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
