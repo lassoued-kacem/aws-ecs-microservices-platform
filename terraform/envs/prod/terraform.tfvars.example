@@ -4,3 +4,4 @@
 # cache_replicas         = 0
 # service_desired_count  = 2
 # nat_per_az             = false
+# db_backup_retention_days = 1   # required on AWS Free-plan accounts

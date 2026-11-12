@@ -34,6 +34,16 @@ variable "db_instance_class" {
   default = "db.t4g.micro"
 }
 
+variable "db_backup_retention_days" {
+  description = "Automated backups / point-in-time recovery window. AWS Free-plan accounts allow at most 1."
+  type        = number
+  default     = 7
+  validation {
+    condition     = var.db_backup_retention_days >= 1 && var.db_backup_retention_days <= 35
+    error_message = "Must be 1-35 days."
+  }
+}
+
 variable "db_multi_az" {
   description = "Standby replica in a second AZ with automatic failover (~2x DB cost)."
   type        = bool
