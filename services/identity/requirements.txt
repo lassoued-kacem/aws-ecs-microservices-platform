@@ -1,10 +1,10 @@
 # Runtime dependencies, pinned exactly (reproducible images). Bump via Dependabot.
-fastapi==0.162.3
+fastapi==0.163.0
 uvicorn[standard]==0.54.0
 pydantic[email]==2.14.3
-pydantic-settings==2.16.2
+pydantic-settings==2.16.3
 SQLAlchemy==2.1.8
-psycopg[binary]==3.3.8
+psycopg[binary]==3.3.9
 alembic==1.20.1
 argon2-cffi==25.1.0
 PyJWT==2.15.1
